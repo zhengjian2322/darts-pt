@@ -2,6 +2,7 @@ import os
 import sys
 import numpy as np
 import torch
+
 sys.path.insert(0, '../')
 import nasbench201.utils as ig_utils
 import logging
@@ -14,7 +15,7 @@ np.set_printoptions(precision=4, suppress=True)
 
 
 def pt_project(train_queue, valid_queue, model, architect, criterion, optimizer,
-             epoch, args, infer, query):
+               epoch, args, infer, query):
     def project(model, args):
         ## macros
         num_edge, num_op = model.num_edge, model.num_op
@@ -31,7 +32,7 @@ def pt_project(train_queue, valid_queue, model, architect, criterion, optimizer,
         if args.proj_crit == 'acc':
             crit_idx = 0
             compare = lambda x, y: x < y
-        
+
         best_opid = 0
         crit_extrema = None
         for opid in range(num_op):
@@ -44,7 +45,7 @@ def pt_project(train_queue, valid_queue, model, architect, criterion, optimizer,
             ## proj evaluation
             valid_stats = infer(valid_queue, model, criterion, log=False, eval=False, weights=weights)
             crit = valid_stats[crit_idx]
-            
+
             if crit_extrema is None or compare(crit, crit_extrema):
                 crit_extrema = crit
                 best_opid = opid
@@ -53,7 +54,7 @@ def pt_project(train_queue, valid_queue, model, architect, criterion, optimizer,
 
         logging.info('best opid %d', best_opid)
         return selected_eid, best_opid
-    
+
     ## query
     if not args.fast:
         api = API('../data/NAS-Bench-201-v1_0-e61699.pth')
@@ -72,7 +73,7 @@ def pt_project(train_queue, valid_queue, model, architect, criterion, optimizer,
     objs = ig_utils.AvgrageMeter()
     top1 = ig_utils.AvgrageMeter()
     top5 = ig_utils.AvgrageMeter()
-    
+
     num_edges = model.arch_parameters()[0].shape[0]
     proj_intv = args.proj_intv
     tune_epochs = proj_intv * (num_edges - 1)
@@ -80,7 +81,7 @@ def pt_project(train_queue, valid_queue, model, architect, criterion, optimizer,
 
     for epoch in range(tune_epochs):
         logging.info('epoch %d', epoch)
-        
+
         if epoch % proj_intv == 0 or epoch == tune_epochs - 1:
             logging.info('project')
             selected_eid, best_opid = project(model, args)
@@ -99,12 +100,14 @@ def pt_project(train_queue, valid_queue, model, architect, criterion, optimizer,
             target_search = target_search.cuda(non_blocking=True)
 
             ## train alpha
-            optimizer.zero_grad(); architect.optimizer.zero_grad()
+            optimizer.zero_grad();
+            architect.optimizer.zero_grad()
             shared = architect.step(input, target, input_search, target_search,
                                     return_logits=True)
 
             ## train weight
-            optimizer.zero_grad(); architect.optimizer.zero_grad()
+            optimizer.zero_grad();
+            architect.optimizer.zero_grad()
             logits, loss = model.step(input, target, args, shared=shared)
 
             ## logging

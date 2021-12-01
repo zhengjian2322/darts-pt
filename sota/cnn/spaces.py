@@ -1,64 +1,61 @@
 from collections import OrderedDict
 
-
-
-
 primitives_1 = OrderedDict([('primitives_normal', [['skip_connect',
                                                     'dil_conv_3x3'],
-                                                    ['skip_connect',
-                                                     'dil_conv_5x5'],
-                                                    ['skip_connect',
-                                                     'dil_conv_5x5'],
-                                                    ['skip_connect',
-                                                     'sep_conv_3x3'],
-                                                    ['skip_connect',
-                                                     'dil_conv_3x3'],
-                                                    ['max_pool_3x3',
-                                                     'skip_connect'],
-                                                    ['skip_connect',
-                                                     'sep_conv_3x3'],
-                                                    ['skip_connect',
-                                                     'sep_conv_3x3'],
-                                                    ['skip_connect',
-                                                     'dil_conv_3x3'],
-                                                    ['skip_connect',
-                                                     'sep_conv_3x3'],
-                                                    ['max_pool_3x3',
-                                                     'skip_connect'],
-                                                    ['skip_connect',
-                                                     'dil_conv_3x3'],
-                                                    ['dil_conv_3x3',
-                                                     'dil_conv_5x5'],
-                                                    ['dil_conv_3x3',
-                                                     'dil_conv_5x5']]),
-                             ('primitives_reduct', [['max_pool_3x3',
-                                                     'avg_pool_3x3'],
-                                                    ['max_pool_3x3',
-                                                     'dil_conv_3x3'],
-                                                    ['max_pool_3x3',
-                                                     'avg_pool_3x3'],
-                                                    ['max_pool_3x3',
-                                                     'avg_pool_3x3'],
-                                                    ['skip_connect',
-                                                     'dil_conv_5x5'],
-                                                    ['max_pool_3x3',
-                                                     'avg_pool_3x3'],
-                                                    ['max_pool_3x3',
-                                                     'sep_conv_3x3'],
-                                                    ['skip_connect',
-                                                     'dil_conv_3x3'],
-                                                    ['skip_connect',
-                                                     'dil_conv_5x5'],
-                                                    ['max_pool_3x3',
-                                                     'avg_pool_3x3'],
-                                                    ['max_pool_3x3',
-                                                     'avg_pool_3x3'],
-                                                    ['skip_connect',
-                                                     'dil_conv_5x5'],
-                                                    ['skip_connect',
-                                                     'dil_conv_5x5'],
-                                                    ['skip_connect',
-                                                     'dil_conv_5x5']])])
+                                                   ['skip_connect',
+                                                    'dil_conv_5x5'],
+                                                   ['skip_connect',
+                                                    'dil_conv_5x5'],
+                                                   ['skip_connect',
+                                                    'sep_conv_3x3'],
+                                                   ['skip_connect',
+                                                    'dil_conv_3x3'],
+                                                   ['max_pool_3x3',
+                                                    'skip_connect'],
+                                                   ['skip_connect',
+                                                    'sep_conv_3x3'],
+                                                   ['skip_connect',
+                                                    'sep_conv_3x3'],
+                                                   ['skip_connect',
+                                                    'dil_conv_3x3'],
+                                                   ['skip_connect',
+                                                    'sep_conv_3x3'],
+                                                   ['max_pool_3x3',
+                                                    'skip_connect'],
+                                                   ['skip_connect',
+                                                    'dil_conv_3x3'],
+                                                   ['dil_conv_3x3',
+                                                    'dil_conv_5x5'],
+                                                   ['dil_conv_3x3',
+                                                    'dil_conv_5x5']]),
+                            ('primitives_reduct', [['max_pool_3x3',
+                                                    'avg_pool_3x3'],
+                                                   ['max_pool_3x3',
+                                                    'dil_conv_3x3'],
+                                                   ['max_pool_3x3',
+                                                    'avg_pool_3x3'],
+                                                   ['max_pool_3x3',
+                                                    'avg_pool_3x3'],
+                                                   ['skip_connect',
+                                                    'dil_conv_5x5'],
+                                                   ['max_pool_3x3',
+                                                    'avg_pool_3x3'],
+                                                   ['max_pool_3x3',
+                                                    'sep_conv_3x3'],
+                                                   ['skip_connect',
+                                                    'dil_conv_3x3'],
+                                                   ['skip_connect',
+                                                    'dil_conv_5x5'],
+                                                   ['max_pool_3x3',
+                                                    'avg_pool_3x3'],
+                                                   ['max_pool_3x3',
+                                                    'avg_pool_3x3'],
+                                                   ['skip_connect',
+                                                    'dil_conv_5x5'],
+                                                   ['skip_connect',
+                                                    'dil_conv_5x5'],
+                                                   ['skip_connect',
+                                                    'dil_conv_5x5']])])
 
 primitives_2 = OrderedDict([('primitives_normal', 14 * [['skip_connect',
                                                          'sep_conv_3x3']]),
@@ -78,13 +75,13 @@ primitives_4 = OrderedDict([('primitives_normal', 14 * [['noise',
                                                          'sep_conv_3x3']])])
 
 PRIMITIVES = [
-    #'none',
-    'max_pool_3x3', # 0
-    'avg_pool_3x3', # 1
-    'skip_connect', # 2
-    'sep_conv_3x3', # 3
-    'sep_conv_5x5', # 4
-    'dil_conv_3x3', # 5
+    # 'none',
+    'max_pool_3x3',  # 0
+    'avg_pool_3x3',  # 1
+    'skip_connect',  # 2
+    'sep_conv_3x3',  # 3
+    'sep_conv_5x5',  # 4
+    'dil_conv_3x3',  # 5
     'dil_conv_5x5'  # 6
 ]
 
@@ -96,5 +93,5 @@ spaces_dict = {
     's2': primitives_2,
     's3': primitives_3,
     's4': primitives_4,
-    's5': primitives_5, # DARTS Space
+    's5': primitives_5,  # DARTS Space
 }

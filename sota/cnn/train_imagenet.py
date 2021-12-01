@@ -3,6 +3,7 @@ import argparse
 import glob
 import logging
 import sys
+
 sys.path.insert(0, '../../')
 import time
 
@@ -42,7 +43,8 @@ parser.add_argument('--label_smooth', type=float, default=0.1, help='label smoot
 parser.add_argument('--gamma', type=float, default=0.97, help='learning rate decay')
 parser.add_argument('--decay_period', type=int, default=1, help='epochs between two learning rate decays')
 parser.add_argument('--parallel', action='store_true', default=False, help='darts parallelism')
-parser.add_argument('--load', action='store_true', default='False', help='whether load checkpoint for continue training')
+parser.add_argument('--load', action='store_true', default='False',
+                    help='whether load checkpoint for continue training')
 args = parser.parse_args()
 
 args.save = '../../experiments/sota/imagenet/eval/{}-{}-{}-{}'.format(
@@ -59,7 +61,6 @@ fh = logging.FileHandler(os.path.join(args.save, 'log.txt'))
 fh.setFormatter(logging.Formatter(log_format))
 logging.getLogger().addHandler(fh)
 writer = SummaryWriter(args.save + '/runs')
-
 
 CLASSES = 1000
 
@@ -101,7 +102,6 @@ def main():
         model = nn.DataParallel(model).cuda()
     else:
         model = model.cuda()
-        
 
     logging.info("param size = %fMB", utils.count_parameters_in_MB(model))
 
@@ -152,7 +152,8 @@ def main():
 
     if args.load:
         model, optimizer, start_epoch, best_acc_top1 = utils.load_checkpoint(
-            model, optimizer, '../../experiments/sota/imagenet/eval/EXP-20200210-143540-c10_s3_pgd-0-auxiliary-0.4-2753')
+            model, optimizer,
+            '../../experiments/sota/imagenet/eval/EXP-20200210-143540-c10_s3_pgd-0-auxiliary-0.4-2753')
     else:
         best_acc_top1 = 0
 

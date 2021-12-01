@@ -6,6 +6,7 @@ from torch.autograd import Variable
 from sota.cnn.operations import *
 from sota.cnn.genotypes import Genotype
 import sys
+
 sys.path.insert(0, '../../')
 from nasbench201.utils import drop_path
 
@@ -47,7 +48,7 @@ class Cell(nn.Module):
         edge_index = 0
 
         for i in range(self._steps):
-            for j in range(2+i):
+            for j in range(2 + i):
                 stride = 2 if reduction and j < 2 else 1
                 op = MixedOp(C, stride, self.primitives[edge_index])
                 self._ops.append(op)
@@ -61,9 +62,10 @@ class Cell(nn.Module):
         offset = 0
         for i in range(self._steps):
             if drop_prob > 0. and self.training:
-                s = sum(drop_path(self._ops[offset+j](h, weights[offset+j]), drop_prob) for j, h in enumerate(states))
+                s = sum(
+                    drop_path(self._ops[offset + j](h, weights[offset + j]), drop_prob) for j, h in enumerate(states))
             else:
-                s = sum(self._ops[offset+j](h, weights[offset+j]) for j, h in enumerate(states))
+                s = sum(self._ops[offset + j](h, weights[offset + j]) for j, h in enumerate(states))
             offset += len(states)
             states.append(s)
 
@@ -83,9 +85,10 @@ class Network(nn.Module):
         self._multiplier = multiplier
         self.drop_path_prob = drop_path_prob
 
-        nn.Module.PRIMITIVES = primitives; self.op_names = primitives
+        nn.Module.PRIMITIVES = primitives;
+        self.op_names = primitives
 
-        C_curr = stem_multiplier*C
+        C_curr = stem_multiplier * C
         self.stem = nn.Sequential(
             nn.Conv2d(3, C_curr, 3, padding=1, bias=False),
             nn.BatchNorm2d(C_curr)
@@ -95,7 +98,7 @@ class Network(nn.Module):
         self.cells = nn.ModuleList()
         reduction_prev = False
         for i in range(layers):
-            if i in [layers//3, 2*layers//3]:
+            if i in [layers // 3, 2 * layers // 3]:
                 C_curr *= 2
                 reduction = True
             else:
@@ -104,7 +107,7 @@ class Network(nn.Module):
 
             reduction_prev = reduction
             self.cells += [cell]
-            C_prev_prev, C_prev = C_prev, multiplier*C_curr
+            C_prev_prev, C_prev = C_prev, multiplier * C_curr
 
         self.global_pooling = nn.AdaptiveAvgPool2d(1)
         self.classifier = nn.Linear(C_prev, num_classes)
@@ -118,7 +121,6 @@ class Network(nn.Module):
             args.learning_rate,
             momentum=args.momentum,
             weight_decay=args.weight_decay)
-        
 
     def reset_optimizer(self, lr, momentum, weight_decay):
         del self.optimizer
@@ -134,21 +136,21 @@ class Network(nn.Module):
         return (loss, logits) if return_logits else loss
 
     def _initialize_alphas(self):
-        k = sum(1 for i in range(self._steps) for n in range(2+i))
+        k = sum(1 for i in range(self._steps) for n in range(2 + i))
         num_ops = len(self.PRIMITIVES['primitives_normal'][0])
         self.num_edges = k
         self.num_ops = num_ops
 
         self.alphas_normal = self._initialize_alphas_numpy(k, num_ops)
         self.alphas_reduce = self._initialize_alphas_numpy(k, num_ops)
-        self._arch_parameters = [ # must be in this order!
+        self._arch_parameters = [  # must be in this order!
             self.alphas_normal,
             self.alphas_reduce,
         ]
 
     def _initialize_alphas_numpy(self, k, num_ops):
         ''' init from specified arch '''
-        return Variable(1e-3*torch.randn(k, num_ops).cuda(), requires_grad=True)
+        return Variable(1e-3 * torch.randn(k, num_ops).cuda(), requires_grad=True)
 
     def forward(self, input):
         weights = self.get_softmax()
@@ -163,15 +165,15 @@ class Network(nn.Module):
                 weights = weights_normal
 
             s0, s1 = s1, cell(s0, s1, weights, self.drop_path_prob)
-            
+
         out = self.global_pooling(s1)
-        logits = self.classifier(out.view(out.size(0),-1))
+        logits = self.classifier(out.view(out.size(0), -1))
 
         return logits
 
     def step(self, input, target, args, shared=None):
         assert shared is None, 'gradient sharing disabled'
-        
+
         Lt, logit_t = self._loss(input, target, return_logits=True)
         Lt.backward()
 
@@ -188,7 +190,7 @@ class Network(nn.Module):
     def get_softmax(self):
         weights_normal = F.softmax(self.alphas_normal, dim=-1)
         weights_reduce = F.softmax(self.alphas_reduce, dim=-1)
-        return {'normal':weights_normal, 'reduce':weights_reduce}
+        return {'normal': weights_normal, 'reduce': weights_reduce}
 
     def printing(self, logging, option='all'):
         weights = self.get_softmax()
@@ -206,7 +208,7 @@ class Network(nn.Module):
         return self.parameters()
 
     def new(self):
-        model_new = Network(self._C, self._num_classes, self._layers, self._criterion, self.PRIMITIVES, self._args,\
+        model_new = Network(self._C, self._num_classes, self._layers, self._criterion, self.PRIMITIVES, self._args, \
                             drop_path_prob=self.drop_path_prob).cuda()
         for x, y in zip(model_new.arch_parameters(), self.arch_parameters()):
             x.data.copy_(y.data)
@@ -223,7 +225,8 @@ class Network(nn.Module):
 
     def genotype(self):
         def _parse(weights, normal=True):
-            PRIMITIVES = self.PRIMITIVES['primitives_normal' if normal else 'primitives_reduct'] ## two are equal for Darts space
+            PRIMITIVES = self.PRIMITIVES[
+                'primitives_normal' if normal else 'primitives_reduct']  ## two are equal for Darts space
 
             gene = []
             n = 2
@@ -233,8 +236,9 @@ class Network(nn.Module):
                 W = weights[start:end].copy()
 
                 try:
-                    edges = sorted(range(i + 2), key=lambda x: -max(W[x][k] for k in range(len(W[x])) if k != PRIMITIVES[x].index('none')))[:2]
-                except ValueError: # This error happens when the 'none' op is not present in the ops
+                    edges = sorted(range(i + 2), key=lambda x: -max(
+                        W[x][k] for k in range(len(W[x])) if k != PRIMITIVES[x].index('none')))[:2]
+                except ValueError:  # This error happens when the 'none' op is not present in the ops
                     edges = sorted(range(i + 2), key=lambda x: -max(W[x][k] for k in range(len(W[x]))))[:2]
 
                 for j in edges:
@@ -247,7 +251,7 @@ class Network(nn.Module):
                         else:
                             if k_best is None or W[j][k] > W[j][k_best]:
                                 k_best = k
-                    gene.append((PRIMITIVES[start+j][k_best], j))
+                    gene.append((PRIMITIVES[start + j][k_best], j))
                 start = end
                 n += 1
             return gene
@@ -255,7 +259,7 @@ class Network(nn.Module):
         gene_normal = _parse(F.softmax(self.alphas_normal, dim=-1).data.cpu().numpy(), True)
         gene_reduce = _parse(F.softmax(self.alphas_reduce, dim=-1).data.cpu().numpy(), False)
 
-        concat = range(2+self._steps-self._multiplier, self._steps+2)
+        concat = range(2 + self._steps - self._multiplier, self._steps + 2)
         genotype = Genotype(
             normal=gene_normal, normal_concat=concat,
             reduce=gene_reduce, reduce_concat=concat

@@ -1,5 +1,6 @@
 import os
 import sys
+
 sys.path.insert(0, '../../')
 import numpy as np
 import torch
@@ -18,7 +19,7 @@ def project_op(model, proj_queue, args, infer, cell_type, selected_eid=None):
     num_edges, num_ops = model.num_edges, model.num_ops
     candidate_flags = model.candidate_flags[cell_type]
     proj_crit = args.proj_crit[cell_type]
-    
+
     #### select an edge
     if selected_eid is None:
         remain_eids = torch.nonzero(candidate_flags).cpu().numpy().T[0]
@@ -44,7 +45,7 @@ def project_op(model, proj_queue, args, infer, cell_type, selected_eid=None):
         weights[selected_eid] = weights[selected_eid] * proj_mask
 
         ## proj evaluation
-        weights_dict = {cell_type:weights}
+        weights_dict = {cell_type: weights}
         valid_stats = infer(proj_queue, model, log=False, _eval=False, weights_dict=weights_dict)
         crit = valid_stats[crit_idx]
 
@@ -57,7 +58,7 @@ def project_op(model, proj_queue, args, infer, cell_type, selected_eid=None):
     #### project
     logging.info('best opid: %d', best_opid)
     return selected_eid, best_opid
-    
+
 
 def project_edge(model, proj_queue, args, infer, cell_type):
     ''' topology '''
@@ -70,7 +71,7 @@ def project_edge(model, proj_queue, args, infer, cell_type):
     if args.edge_decision == "random":
         selected_nid = np.random.choice(remain_nids, size=1)[0]
         logging.info('selected node: %d %s', selected_nid, cell_type)
-    
+
     #### select top2 edges
     if proj_crit == 'loss':
         crit_idx = 1
@@ -86,13 +87,13 @@ def project_edge(model, proj_queue, args, infer, cell_type):
         for eid in eids:
             weights = model.get_projected_weights(cell_type)
             weights[eid].data.fill_(0)
-            weights_dict = {cell_type:weights}
+            weights_dict = {cell_type: weights}
 
             ## proj evaluation
             valid_stats = infer(proj_queue, model, log=False, _eval=False, weights_dict=weights_dict)
             crit = valid_stats[crit_idx]
 
-            if crit_extrema is None or not compare(crit, crit_extrema): # find out bad edges
+            if crit_extrema is None or not compare(crit, crit_extrema):  # find out bad edges
                 crit_extrema = crit
                 eid_todel = eid
             logging.info('valid_acc %f', valid_stats[0])
@@ -121,20 +122,17 @@ def pt_project(train_queue, valid_queue, model, architect, optimizer,
     top1 = ig_utils.AvgrageMeter()
     top5 = ig_utils.AvgrageMeter()
 
-
     #### macros
-    num_projs = model.num_edges + len(model.nid2eids.keys()) - 1 ## -1 because we project at both epoch 0 and -1
+    num_projs = model.num_edges + len(model.nid2eids.keys()) - 1  ## -1 because we project at both epoch 0 and -1
     tune_epochs = args.proj_intv * num_projs + 1
     proj_intv = args.proj_intv
-    args.proj_crit = {'normal':args.proj_crit_normal, 'reduce':args.proj_crit_reduce}
+    args.proj_crit = {'normal': args.proj_crit_normal, 'reduce': args.proj_crit_reduce}
     proj_queue = valid_queue
-
 
     #### reset optimizer
     model.reset_optimizer(args.learning_rate / 10, args.momentum, args.weight_decay)
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
         model.optimizer, float(tune_epochs), eta_min=args.learning_rate_min)
-
 
     #### load proj checkpoints
     start_epoch = 0
@@ -147,16 +145,15 @@ def pt_project(train_queue, valid_queue, model, architect, optimizer,
             model.set_state_dict(architect, scheduler, checkpoint)
             model.set_arch_parameters(checkpoint['alpha'])
             scheduler.load_state_dict(checkpoint['scheduler'])
-            model.optimizer.load_state_dict(checkpoint['optimizer']) # optimizer
+            model.optimizer.load_state_dict(checkpoint['optimizer'])  # optimizer
         else:
             logging.info("=> no checkpoint found at '{}'".format(filename))
             exit(0)
 
-
     #### projecting and tuning
     for epoch in range(start_epoch, tune_epochs):
         logging.info('epoch %d', epoch)
-        
+
         ## project
         if epoch % proj_intv == 0 or epoch == tune_epochs - 1:
             ## saving every projection
@@ -165,7 +162,7 @@ def pt_project(train_queue, valid_queue, model, architect, optimizer,
 
             if epoch < proj_intv * model.num_edges:
                 logging.info('project op')
-                
+
                 selected_eid_normal, best_opid_normal = project_op(model, proj_queue, args, infer, cell_type='normal')
                 model.project_op(selected_eid_normal, best_opid_normal, cell_type='normal')
                 selected_eid_reduce, best_opid_reduce = project_op(model, proj_queue, args, infer, cell_type='reduce')
@@ -174,7 +171,7 @@ def pt_project(train_queue, valid_queue, model, architect, optimizer,
                 model.printing(logging)
             else:
                 logging.info('project edge')
-                
+
                 selected_nid_normal, eids_normal = project_edge(model, proj_queue, args, infer, cell_type='normal')
                 model.project_edge(selected_nid_normal, eids_normal, cell_type='normal')
                 selected_nid_reduce, eids_reduce = project_edge(model, proj_queue, args, infer, cell_type='reduce')
@@ -195,7 +192,8 @@ def pt_project(train_queue, valid_queue, model, architect, optimizer,
             target_search = target_search.cuda(non_blocking=True)
 
             ## train alpha
-            optimizer.zero_grad(); architect.optimizer.zero_grad()
+            optimizer.zero_grad();
+            architect.optimizer.zero_grad()
             architect.step(input, target, input_search, target_search,
                            return_logits=True)
 
@@ -203,11 +201,13 @@ def pt_project(train_queue, valid_queue, model, architect, optimizer,
             if perturb_alpha:
                 # transform arch_parameters to prob (for perturbation)
                 model.softmax_arch_parameters()
-                optimizer.zero_grad(); architect.optimizer.zero_grad()
+                optimizer.zero_grad();
+                architect.optimizer.zero_grad()
                 perturb_alpha(model, input, target, epsilon_alpha)
 
             ## train weight
-            optimizer.zero_grad(); architect.optimizer.zero_grad()
+            optimizer.zero_grad();
+            architect.optimizer.zero_grad()
             logits, loss = model.step(input, target, args)
 
             ## sdarts
@@ -236,7 +236,6 @@ def pt_project(train_queue, valid_queue, model, architect, optimizer,
         valid_acc, valid_obj = infer(valid_queue, model, log=False)
         logging.info('valid_acc  %f', valid_acc)
         logging.info('valid_loss %f', valid_obj)
-
 
     logging.info('projection finished')
     model.printing(logging)

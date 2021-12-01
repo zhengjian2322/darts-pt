@@ -73,6 +73,7 @@ class Cutout(object):
             img *= mask
         return img
 
+
 def _data_transforms_svhn(args):
     SVHN_MEAN = [0.4377, 0.4438, 0.4728]
     SVHN_STD = [0.1980, 0.2010, 0.1970]
@@ -85,12 +86,12 @@ def _data_transforms_svhn(args):
     ])
     if args.cutout:
         train_transform.transforms.append(Cutout(args.cutout_length,
-                                          args.cutout_prob))
+                                                 args.cutout_prob))
 
     valid_transform = transforms.Compose([
         transforms.ToTensor(),
         transforms.Normalize(SVHN_MEAN, SVHN_STD),
-        ])
+    ])
     return train_transform, valid_transform
 
 
@@ -106,12 +107,12 @@ def _data_transforms_cifar100(args):
     ])
     if args.cutout:
         train_transform.transforms.append(Cutout(args.cutout_length,
-                                          args.cutout_prob))
+                                                 args.cutout_prob))
 
     valid_transform = transforms.Compose([
         transforms.ToTensor(),
         transforms.Normalize(CIFAR_MEAN, CIFAR_STD),
-        ])
+    ])
     return train_transform, valid_transform
 
 
@@ -180,7 +181,7 @@ def load_checkpoint(model, optimizer, save, epoch=None):
               .format(filename, checkpoint['epoch']))
     else:
         print("=> no checkpoint found at '{}'".format(filename))
-    
+
     return model, optimizer, start_epoch, best_acc_top1
 
 
@@ -239,7 +240,7 @@ class CIFAR10(VisionDataset):
         ['data_batch_2', 'd4bba439e000b95fd0a9bffe97cbabec'],
         ['data_batch_3', '54ebc095f3ab1f0389bbae665268c751'],
         ['data_batch_4', '634d18415352ddfa80567beed471001a'],
-        #['data_batch_5', '482c414d41f54cd18b22e5b47cb7c3cb'],
+        # ['data_batch_5', '482c414d41f54cd18b22e5b47cb7c3cb'],
     ]
 
     test_list = [
@@ -356,7 +357,7 @@ def pick_gpu_lowest_memory():
     import gpustat
     stats = gpustat.GPUStatCollection.new_query()
     ids = map(lambda gpu: int(gpu.entry['index']), stats)
-    ratios = map(lambda gpu: float(gpu.memory_used)/float(gpu.memory_total), stats)
+    ratios = map(lambda gpu: float(gpu.memory_used) / float(gpu.memory_total), stats)
     bestGPU = min(zip(ids, ratios), key=lambda x: x[1])[0]
     return bestGPU
 
@@ -418,8 +419,8 @@ class EVLocalAvg(object):
         # since the local average computation starts after the dominant
         # eigenvalue in the first epoch is already computed we have to wait
         # at least until we have 3 eigenvalues in the list.
-        if (len(self.ev) >= int(np.ceil(self.window/2))) and (epoch <
-                                                              self.epochs - 1):
+        if (len(self.ev) >= int(np.ceil(self.window / 2))) and (epoch <
+                                                                self.epochs - 1):
             # start sliding the window as soon as the number of eigenvalues in
             # the list becomes equal to the window size
             if len(self.ev) < self.window:
@@ -435,16 +436,16 @@ class EVLocalAvg(object):
             # corresponding to the local average. NOTE: in the end the size of
             # self.ev and self.ev_local_avg should be equal
             self.la_epochs.update({epoch: int(epoch -
-                                              int(self.ev_freq*np.floor(self.window/2)))})
+                                              int(self.ev_freq * np.floor(self.window / 2)))})
 
-        elif len(self.ev) < int(np.ceil(self.window/2)):
-          self.la_epochs.update({epoch: -1})
+        elif len(self.ev) < int(np.ceil(self.window / 2)):
+            self.la_epochs.update({epoch: -1})
 
         # since there is an offset between the current epoch and the local
         # average epoch, loop in the last epoch to compute the local average of
         # these number of elements: window, window - 1, window - 2, ..., ceil(window/2)
         elif epoch == self.epochs - 1:
-            for i in range(int(np.ceil(self.window/2))):
+            for i in range(int(np.ceil(self.window / 2))):
                 assert len(self.ev[self.la_start_idx: self.la_end_idx]) == self.window - i
                 self.ev_local_avg.append(np.mean(self.ev[self.la_start_idx:
                                                          self.la_end_idx + 1]))
@@ -463,13 +464,13 @@ class EVLocalAvg(object):
                 consider for early stopping. Default: 2
         """
         if criteria == 'local_avg':
-            if int(self.la_epochs[epoch] - self.ev_freq*delta) >= es_start_epoch:
+            if int(self.la_epochs[epoch] - self.ev_freq * delta) >= es_start_epoch:
                 if criteria == 'local_avg':
                     current_la = self.ev_local_avg[-1]
                     previous_la = self.ev_local_avg[-1 - delta]
                     self.stop_search = current_la / previous_la > factor
                     if self.stop_search:
-                        self.stop_epoch = int(self.la_epochs[epoch] - self.ev_freq*delta)
+                        self.stop_epoch = int(self.la_epochs[epoch] - self.ev_freq * delta)
                         self.stop_genotype = self.genotypes[self.stop_epoch]
                         self.stop_numparam = self.numparams[self.stop_epoch]
         elif criteria == 'exact':
@@ -482,7 +483,8 @@ class EVLocalAvg(object):
                     self.stop_genotype = self.genotypes[self.stop_epoch]
                     self.stop_numparam = self.numparams[self.stop_epoch]
         else:
-            print('ERROR IN EARLY STOP: WRONG CRITERIA:', criteria); exit(0)
+            print('ERROR IN EARLY STOP: WRONG CRITERIA:', criteria);
+            exit(0)
 
 
 def gen_comb(eids):

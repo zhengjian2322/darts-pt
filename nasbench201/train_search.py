@@ -1,5 +1,6 @@
 import os
 import sys
+
 sys.path.insert(0, '../')
 import time
 import glob
@@ -26,11 +27,11 @@ from nasbench201.projection import pt_project
 torch.set_printoptions(precision=4, sci_mode=False)
 np.set_printoptions(precision=4, suppress=True)
 
-
 parser = argparse.ArgumentParser("sota")
 parser.add_argument('--data', type=str, default='../data',
                     help='location of the data corpus')
-parser.add_argument('--dataset', type=str, default='cifar10', choices=['cifar10', 'cifar100', 'imagenet16-120'], help='choose dataset')
+parser.add_argument('--dataset', type=str, default='cifar10', choices=['cifar10', 'cifar100', 'imagenet16-120'],
+                    help='choose dataset')
 parser.add_argument('--method', type=str, default='dirichlet', help='choose nas method')
 parser.add_argument('--search_space', type=str, default='nas-bench-201')
 parser.add_argument('--batch_size', type=int, default=64, help='batch size for alpha')
@@ -62,11 +63,11 @@ parser.add_argument('--ckpt_interval', type=int, default=20, help='frequency for
 parser.add_argument('--expid_tag', type=str, default='none', help='extra tag for exp identification')
 parser.add_argument('--log_tag', type=str, default='', help='extra tag for log during arch projection')
 #### projection
-parser.add_argument('--edge_decision', type=str, default='random', choices=['random'], help='which edge to be projected next')
+parser.add_argument('--edge_decision', type=str, default='random', choices=['random'],
+                    help='which edge to be projected next')
 parser.add_argument('--proj_crit', type=str, default='acc', choices=['loss', 'acc'], help='criteria for projection')
 parser.add_argument('--proj_intv', type=int, default=5, help='fine tune epochs between two projections')
 args = parser.parse_args()
-
 
 #### macros
 
@@ -78,9 +79,8 @@ if not args.dataset == 'cifar10':
     args.save += '-' + args.dataset
 if args.expid_tag != 'none': args.save += '-' + args.expid_tag
 
-
 #### logging
-if args.resume_epoch > 0: # do not delete dir if resume:
+if args.resume_epoch > 0:  # do not delete dir if resume:
     args.save = '../experiments/nasbench201/{}'.format(args.resume_expid)
     if not os.path.exists(args.save):
         print('no such directory {}'.format(args.save))
@@ -96,7 +96,7 @@ else:
 
 log_format = '%(asctime)s %(message)s'
 logging.basicConfig(stream=sys.stdout, level=logging.INFO,
-    format=log_format, datefmt='%m/%d %I:%M:%S %p')
+                    format=log_format, datefmt='%m/%d %I:%M:%S %p')
 
 if args.resume_epoch > 0:
     log_file = 'log_resume-{}_dev-{}_seed-{}_intv-{}'.format(args.resume_epoch, args.dev, args.seed, args.proj_intv)
@@ -120,7 +120,6 @@ fh = logging.FileHandler(log_path, mode='w')
 fh.setFormatter(logging.Formatter(log_format))
 logging.getLogger().addHandler(fh)
 writer = SummaryWriter(args.save + '/runs')
-
 
 #### macros
 if args.dataset == 'cifar100':
@@ -150,19 +149,19 @@ def main():
     if not args.fast:
         api = API('../data/NAS-Bench-201-v1_0-e61699.pth')
 
-
     #### model
     criterion = nn.CrossEntropyLoss()
     search_space = SearchSpaceNames[args.search_space]
     if args.method in ['darts', 'blank']:
-        model = TinyNetworkDarts(C=args.init_channels, N=5, max_nodes=4, num_classes=n_classes, criterion=criterion, search_space=search_space, args=args)
+        model = TinyNetworkDarts(C=args.init_channels, N=5, max_nodes=4, num_classes=n_classes, criterion=criterion,
+                                 search_space=search_space, args=args)
     elif args.method in ['darts-proj', 'blank-proj']:
-        model = TinyNetworkDartsProj(C=args.init_channels, N=5, max_nodes=4, num_classes=n_classes, criterion=criterion, search_space=search_space, args=args)
+        model = TinyNetworkDartsProj(C=args.init_channels, N=5, max_nodes=4, num_classes=n_classes, criterion=criterion,
+                                     search_space=search_space, args=args)
     model = model.cuda()
     logging.info("param size = %fMB", ig_utils.count_parameters_in_MB(model))
 
     architect = Architect(model, args)
-
 
     #### data
     if args.dataset == 'cifar10':
@@ -177,11 +176,14 @@ def main():
         import torchvision.transforms as transforms
         from nasbench201.DownsampledImageNet import ImageNet16
         mean = [x / 255 for x in [122.68, 116.66, 104.01]]
-        std = [x / 255 for x in [63.22,  61.26, 65.09]]
-        lists = [transforms.RandomHorizontalFlip(), transforms.RandomCrop(16, padding=2), transforms.ToTensor(), transforms.Normalize(mean, std)]
+        std = [x / 255 for x in [63.22, 61.26, 65.09]]
+        lists = [transforms.RandomHorizontalFlip(), transforms.RandomCrop(16, padding=2), transforms.ToTensor(),
+                 transforms.Normalize(mean, std)]
         train_transform = transforms.Compose(lists)
-        train_data = ImageNet16(root=os.path.join(args.data,'imagenet16'), train=True, transform=train_transform, use_num_of_class_only=120)
-        valid_data = ImageNet16(root=os.path.join(args.data,'imagenet16'), train=False, transform=train_transform, use_num_of_class_only=120)
+        train_data = ImageNet16(root=os.path.join(args.data, 'imagenet16'), train=True, transform=train_transform,
+                                use_num_of_class_only=120)
+        valid_data = ImageNet16(root=os.path.join(args.data, 'imagenet16'), train=False, transform=train_transform,
+                                use_num_of_class_only=120)
         assert len(train_data) == 151700
 
     num_train = len(train_data)
@@ -197,11 +199,9 @@ def main():
         sampler=torch.utils.data.sampler.SubsetRandomSampler(indices[split:num_train]),
         pin_memory=True)
 
-
     #### scheduler
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
         model.optimizer, float(args.epochs), eta_min=args.learning_rate_min)
-
 
     #### resume
     start_epoch = 0
@@ -213,14 +213,14 @@ def main():
         if os.path.isfile(filename):
             logging.info("=> loading checkpoint '{}'".format(filename))
             checkpoint = torch.load(filename, map_location='cpu')
-            start_epoch = checkpoint['epoch'] # epoch
+            start_epoch = checkpoint['epoch']  # epoch
             model_state_dict = checkpoint['state_dict']
             if '_arch_parameters' in model_state_dict: del model_state_dict['_arch_parameters']
-            model.load_state_dict(model_state_dict) # model
-            saved_arch_parameters = checkpoint['alpha'] # arch
+            model.load_state_dict(model_state_dict)  # model
+            saved_arch_parameters = checkpoint['alpha']  # arch
             model.set_arch_parameters(saved_arch_parameters)
             scheduler.load_state_dict(checkpoint['scheduler'])
-            model.optimizer.load_state_dict(checkpoint['optimizer']) # optimizer
+            model.optimizer.load_state_dict(checkpoint['optimizer'])  # optimizer
             architect.optimizer.load_state_dict(checkpoint['arch_optimizer'])
             logging.info("=> loaded checkpoint '{}' (epoch {})".format(filename, start_epoch - 1))
         else:
@@ -256,14 +256,16 @@ def main():
         if not args.fast:
             # nasbench201
             cifar10_train, cifar10_test, cifar100_train, cifar100_valid, \
-                cifar100_test, imagenet16_train, imagenet16_valid, imagenet16_test = query(api, model.genotype(), logging)
+            cifar100_test, imagenet16_train, imagenet16_valid, imagenet16_test = query(api, model.genotype(), logging)
 
             # tensorboard
-            writer.add_scalars('accuracy', {'train':train_acc,'valid':valid_acc}, epoch)
-            writer.add_scalars('loss', {'train':train_obj,'valid':valid_obj}, epoch)
-            writer.add_scalars('nasbench201/cifar10', {'train':cifar10_train,'test':cifar10_test}, epoch)
-            writer.add_scalars('nasbench201/cifar100', {'train':cifar100_train,'valid':cifar100_valid, 'test':cifar100_test}, epoch)
-            writer.add_scalars('nasbench201/imagenet16', {'train':imagenet16_train,'valid':imagenet16_valid, 'test':imagenet16_test}, epoch)
+            writer.add_scalars('accuracy', {'train': train_acc, 'valid': valid_acc}, epoch)
+            writer.add_scalars('loss', {'train': train_obj, 'valid': valid_obj}, epoch)
+            writer.add_scalars('nasbench201/cifar10', {'train': cifar10_train, 'test': cifar10_test}, epoch)
+            writer.add_scalars('nasbench201/cifar100',
+                               {'train': cifar100_train, 'valid': cifar100_valid, 'test': cifar100_test}, epoch)
+            writer.add_scalars('nasbench201/imagenet16',
+                               {'train': imagenet16_train, 'valid': imagenet16_valid, 'test': imagenet16_test}, epoch)
 
         #### scheduling
         scheduler.step()
@@ -294,23 +296,26 @@ def train(train_queue, valid_queue, model, architect, optimizer, lr, epoch):
     top1 = ig_utils.AvgrageMeter()
     top5 = ig_utils.AvgrageMeter()
 
-
     for step in range(len(train_queue)):
         model.train()
 
         ## data
         input, target = next(iter(train_queue))
-        input = input.cuda(); target = target.cuda(non_blocking=True)
+        input = input.cuda();
+        target = target.cuda(non_blocking=True)
         input_search, target_search = next(iter(valid_queue))
-        input_search = input_search.cuda(); target_search = target_search.cuda(non_blocking=True)
+        input_search = input_search.cuda();
+        target_search = target_search.cuda(non_blocking=True)
 
         ## train alpha
-        optimizer.zero_grad(); architect.optimizer.zero_grad()
+        optimizer.zero_grad();
+        architect.optimizer.zero_grad()
         shared = architect.step(input, target, input_search, target_search,
                                 eta=lr, network_optimizer=optimizer)
 
         ## train weight
-        optimizer.zero_grad(); architect.optimizer.zero_grad()
+        optimizer.zero_grad();
+        architect.optimizer.zero_grad()
         logits, loss = model.step(input, target, args, shared=shared)
 
         ## logging
@@ -334,8 +339,8 @@ def infer(valid_queue, model, criterion,
     objs = ig_utils.AvgrageMeter()
     top1 = ig_utils.AvgrageMeter()
     top5 = ig_utils.AvgrageMeter()
-    model.eval() if eval else model.train() # disable running stats for projection
-    
+    model.eval() if eval else model.train()  # disable running stats for projection
+
     if bn_est:
         _data_loader = deepcopy(valid_queue)
         for step, (input, target) in enumerate(_data_loader):
@@ -350,8 +355,9 @@ def infer(valid_queue, model, criterion,
             input = input.cuda()
             target = target.cuda(non_blocking=True)
             if double:
-                input = input.double(); target = target.double()
-            
+                input = input.double();
+                target = target.double()
+
             logits = model(input) if weights is None else model(input, weights=weights)
             loss = criterion(logits, target)
 
@@ -387,14 +393,14 @@ def distill(result):
     imagenet16_test = float(imagenet16[3][-7:-2].strip('='))
 
     return cifar10_train, cifar10_test, cifar100_train, cifar100_valid, \
-        cifar100_test, imagenet16_train, imagenet16_valid, imagenet16_test
+           cifar100_test, imagenet16_train, imagenet16_valid, imagenet16_test
 
 
 def query(api, genotype, logging):
     result = api.query_by_arch(genotype)
     logging.info('{:}'.format(result))
     cifar10_train, cifar10_test, cifar100_train, cifar100_valid, \
-        cifar100_test, imagenet16_train, imagenet16_valid, imagenet16_test = distill(result)
+    cifar100_test, imagenet16_train, imagenet16_valid, imagenet16_test = distill(result)
     logging.info('cifar10 train %f test %f', cifar10_train, cifar10_test)
     logging.info('cifar100 train %f valid %f test %f', cifar100_train, cifar100_valid, cifar100_test)
     logging.info('imagenet16 train %f valid %f test %f', imagenet16_train, imagenet16_valid, imagenet16_test)

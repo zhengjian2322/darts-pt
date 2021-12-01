@@ -4,32 +4,35 @@ from copy import deepcopy
 from sota.cnn.operations import *
 from sota.cnn.genotypes import Genotype
 import sys
+
 sys.path.insert(0, '../../')
 from sota.cnn.model_search import Network
+
 
 class DartsNetworkProj(Network):
     def __init__(self, C, num_classes, layers, criterion, primitives, args,
                  steps=4, multiplier=4, stem_multiplier=3, drop_path_prob=0.0):
         super(DartsNetworkProj, self).__init__(C, num_classes, layers, criterion, primitives, args,
-              steps=steps, multiplier=multiplier, stem_multiplier=stem_multiplier, drop_path_prob=drop_path_prob)
-        
+                                               steps=steps, multiplier=multiplier, stem_multiplier=stem_multiplier,
+                                               drop_path_prob=drop_path_prob)
+
         self._initialize_flags()
         self._initialize_proj_weights()
         self._initialize_topology_dicts()
 
     #### proj flags
     def _initialize_topology_dicts(self):
-        self.nid2eids = {0:[2,3,4], 1:[5,6,7,8], 2:[9,10,11,12,13]}
+        self.nid2eids = {0: [2, 3, 4], 1: [5, 6, 7, 8], 2: [9, 10, 11, 12, 13]}
         self.nid2selected_eids = {
-            'normal': {0:[],1:[],2:[]},
-            'reduce': {0:[],1:[],2:[]},
+            'normal': {0: [], 1: [], 2: []},
+            'reduce': {0: [], 1: [], 2: []},
         }
-    
+
     def _initialize_flags(self):
         self.candidate_flags = {
-            'normal':torch.tensor(self.num_edges * [True], requires_grad=False, dtype=torch.bool).cuda(),
-            'reduce':torch.tensor(self.num_edges * [True], requires_grad=False, dtype=torch.bool).cuda(),
-        } # must be in this order
+            'normal': torch.tensor(self.num_edges * [True], requires_grad=False, dtype=torch.bool).cuda(),
+            'reduce': torch.tensor(self.num_edges * [True], requires_grad=False, dtype=torch.bool).cuda(),
+        }  # must be in this order
         self.candidate_flags_edge = {
             'normal': torch.tensor(3 * [True], requires_grad=False, dtype=torch.bool).cuda(),
             'reduce': torch.tensor(3 * [True], requires_grad=False, dtype=torch.bool).cuda(),
@@ -44,19 +47,19 @@ class DartsNetworkProj(Network):
             alphas_normal = self.alphas_normal
             alphas_reduce = self.alphas_reduce
 
-        self.proj_weights = { # for hard/soft assignment after project
+        self.proj_weights = {  # for hard/soft assignment after project
             'normal': torch.zeros_like(alphas_normal),
             'reduce': torch.zeros_like(alphas_reduce),
         }
-    
+
     #### proj function
     def project_op(self, eid, opid, cell_type):
-        self.proj_weights[cell_type][eid][opid] = 1 ## hard by default
+        self.proj_weights[cell_type][eid][opid] = 1  ## hard by default
         self.candidate_flags[cell_type][eid] = False
-        
+
     def project_edge(self, nid, eids, cell_type):
         for eid in self.nid2eids[nid]:
-            if eid not in eids: # not top2
+            if eid not in eids:  # not top2
                 self.proj_weights[cell_type][eid].data.fill_(0)
         self.nid2selected_eids[cell_type][nid] = deepcopy(eids)
         self.candidate_flags_edge[cell_type][nid] = False
@@ -73,7 +76,7 @@ class DartsNetworkProj(Network):
 
         ## proj edge
         for nid in self.nid2eids:
-            if not self.candidate_flags_edge[cell_type][nid]: ## projected node
+            if not self.candidate_flags_edge[cell_type][nid]:  ## projected node
                 for eid in self.nid2eids[nid]:
                     if eid not in self.nid2selected_eids[cell_type][nid]:
                         weights[eid].data.copy_(self.proj_weights[cell_type][eid])
@@ -98,9 +101,9 @@ class DartsNetworkProj(Network):
                 weights = weights_normal
 
             s0, s1 = s1, cell(s0, s1, weights, self.drop_path_prob)
-            
+
         out = self.global_pooling(s1)
-        logits = self.classifier(out.view(out.size(0),-1))
+        logits = self.classifier(out.view(out.size(0), -1))
 
         return logits
 
@@ -126,7 +129,8 @@ class DartsNetworkProj(Network):
                 W = weights[start:end].copy()
 
                 try:
-                    edges = sorted(range(i + 2), key=lambda x: -max(W[x][k] for k in range(len(W[x])) if k != PRIMITIVES[x].index('none')))[:2]
+                    edges = sorted(range(i + 2), key=lambda x: -max(
+                        W[x][k] for k in range(len(W[x])) if k != PRIMITIVES[x].index('none')))[:2]
                 except ValueError:
                     edges = sorted(range(i + 2), key=lambda x: -max(W[x][k] for k in range(len(W[x]))))[:2]
 
@@ -140,7 +144,7 @@ class DartsNetworkProj(Network):
                         else:
                             if k_best is None or W[j][k] > W[j][k_best]:
                                 k_best = k
-                    gene.append((PRIMITIVES[start+j][k_best], j))
+                    gene.append((PRIMITIVES[start + j][k_best], j))
                 start = end
                 n += 1
             return gene
@@ -150,16 +154,16 @@ class DartsNetworkProj(Network):
         gene_normal = _parse(weights_normal.data.cpu().numpy(), True)
         gene_reduce = _parse(weights_reduce.data.cpu().numpy(), False)
 
-        concat = range(2+self._steps-self._multiplier, self._steps+2)
+        concat = range(2 + self._steps - self._multiplier, self._steps + 2)
         genotype = Genotype(
             normal=gene_normal, normal_concat=concat,
             reduce=gene_reduce, reduce_concat=concat
         )
         return genotype
-    
+
     def get_state_dict(self, epoch, architect, scheduler):
         model_state_dict = {
-            'epoch': epoch, ## no +1 because we are saving before projection / at the beginning of an epoch
+            'epoch': epoch,  ## no +1 because we are saving before projection / at the beginning of an epoch
             'state_dict': self.state_dict(),
             'alpha': self.arch_parameters(),
             'optimizer': self.optimizer.state_dict(),

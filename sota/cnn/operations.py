@@ -6,7 +6,7 @@ OPS = {
     'noise': lambda C, stride, affine: NoiseOp(stride, 0., 1.),
     'none': lambda C, stride, affine: Zero(stride),
     'avg_pool_3x3': lambda C, stride, affine: nn.AvgPool2d(3, stride=stride, padding=1, count_include_pad=False),
-    'max_pool_3x3' : lambda C, stride, affine: nn.MaxPool2d(3, stride=stride, padding=1),
+    'max_pool_3x3': lambda C, stride, affine: nn.MaxPool2d(3, stride=stride, padding=1),
     'skip_connect': lambda C, stride, affine: Identity() if stride == 1 else FactorizedReduce(C, C, affine=affine),
     'sep_conv_3x3': lambda C, stride, affine: SepConv(C, C, 3, stride, 1, affine=affine),
     'sep_conv_5x5': lambda C, stride, affine: SepConv(C, C, 5, stride, 2, affine=affine),
@@ -35,7 +35,7 @@ class NoiseOp(nn.Module):
 
     def forward(self, x):
         if self.stride != 1:
-            x_new = x[:,:,::self.stride,::self.stride]
+            x_new = x[:, :, ::self.stride, ::self.stride]
         else:
             x_new = x
         noise = Variable(x_new.data.new(x_new.size()).normal_(self.mean, self.std))

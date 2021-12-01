@@ -7,8 +7,8 @@ class Architect(object):
         self.network_weight_decay = args.weight_decay
         self.model = model
         self.optimizer = torch.optim.Adam(self.model.arch_parameters(),
-                                        lr=args.arch_learning_rate, betas=(0.5, 0.999),
-                                        weight_decay=args.arch_weight_decay)
+                                          lr=args.arch_learning_rate, betas=(0.5, 0.999),
+                                          weight_decay=args.arch_weight_decay)
 
         self._init_arch_parameters = []
         for alpha in self.model.arch_parameters():
@@ -18,13 +18,14 @@ class Architect(object):
 
         #### mode
         if args.method in ['darts', 'darts-proj', 'sdarts', 'sdarts-proj']:
-            self.method = 'fo' # first order update
+            self.method = 'fo'  # first order update
         elif 'so' in args.method:
             print('ERROR: PLEASE USE architect.py for second order darts')
         elif args.method in ['blank', 'blank-proj']:
             self.method = 'blank'
         else:
-            print('ERROR: WRONG ARCH UPDATE METHOD', args.method); exit(0)
+            print('ERROR: WRONG ARCH UPDATE METHOD', args.method);
+            exit(0)
 
     def reset_arch_parameters(self):
         for alpha, alpha_init in zip(self.model.arch_parameters(), self._init_arch_parameters):
@@ -35,7 +36,7 @@ class Architect(object):
             shared = self._step_fo(input_train, target_train, input_valid, target_valid)
         elif self.method == 'so':
             raise NotImplementedError
-        elif self.method == 'blank': ## do not update alpha
+        elif self.method == 'blank':  ## do not update alpha
             shared = None
 
         return shared

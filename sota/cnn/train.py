@@ -1,5 +1,6 @@
 import os
 import sys
+
 sys.path.insert(0, '../../')
 import time
 import glob
@@ -17,7 +18,6 @@ import sota.cnn.genotypes as genotypes
 
 from sota.cnn.model import Network
 from torch.utils.tensorboard import SummaryWriter
-
 
 parser = argparse.ArgumentParser("cifar")
 parser.add_argument('--data', type=str, default='../../data',
@@ -62,11 +62,10 @@ if args.cutout:
 if args.auxiliary:
     args.save += '-auxiliary-' + str(args.auxiliary_weight)
 
-
 #### logging
-if args.resume_epoch > 0: # do not delete dir if resume:
+if args.resume_epoch > 0:  # do not delete dir if resume:
     args.save = '../../experiments/sota/{}/{}'.format(args.dataset, args.resume_expid)
-    assert(os.path.exists(args.save), 'resume but {} does not exist!'.format(args.save))
+    assert (os.path.exists(args.save), 'resume but {} does not exist!'.format(args.save))
 else:
     scripts_to_save = glob.glob('*.py')
     if os.path.exists(args.save):
@@ -86,7 +85,6 @@ fh.setFormatter(logging.Formatter(log_format))
 logging.getLogger().addHandler(fh)
 writer = SummaryWriter(args.save + '/runs')
 
-
 if args.dataset == 'cifar100':
     n_classes = 100
 else:
@@ -98,7 +96,7 @@ def main():
     if not torch.cuda.is_available():
         logging.info('no gpu device available')
         sys.exit(1)
-    
+
     #### gpu queueing
     if args.queue:
         ig_utils.queue_gpu()
@@ -112,11 +110,11 @@ def main():
     torch.cuda.manual_seed(args.seed)
     logging.info('gpu device = %d' % gpu)
     logging.info("args = %s", args)
-    
+
     genotype = eval("genotypes.%s" % args.arch)
     model = Network(args.init_channels, n_classes, args.layers, args.auxiliary, genotype)
     model = model.cuda()
-    
+
     logging.info("param size = %fMB", ig_utils.count_parameters_in_MB(model))
 
     criterion = nn.CrossEntropyLoss()
@@ -150,7 +148,6 @@ def main():
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
         optimizer, float(args.epochs))
 
-
     #### resume
     start_epoch = 0
     if args.resume_epoch > 0:
@@ -160,15 +157,14 @@ def main():
         if os.path.isfile(filename):
             print("=> loading checkpoint '{}'".format(filename))
             checkpoint = torch.load(filename, map_location='cpu')
-            resume_epoch = checkpoint['epoch'] # epoch
-            model.load_state_dict(checkpoint['state_dict']) # model
+            resume_epoch = checkpoint['epoch']  # epoch
+            model.load_state_dict(checkpoint['state_dict'])  # model
             scheduler.load_state_dict(checkpoint['scheduler'])
-            optimizer.load_state_dict(checkpoint['optimizer']) # optimizer
+            optimizer.load_state_dict(checkpoint['optimizer'])  # optimizer
             start_epoch = args.resume_epoch
             print("=> loaded checkpoint '{}' (epoch {})".format(filename, resume_epoch))
         else:
             print("=> no checkpoint found at '{}'".format(filename))
-
 
     #### main training
     best_valid_acc = 0
@@ -225,7 +221,7 @@ def train(train_queue, model, criterion, optimizer):
         loss = criterion(logits, target)
         if args.auxiliary:
             loss_aux = criterion(logits_aux, target)
-            loss += args.auxiliary_weight*loss_aux
+            loss += args.auxiliary_weight * loss_aux
         loss.backward()
         nn.utils.clip_grad_norm_(model.parameters(), args.grad_clip)
         optimizer.step()
@@ -268,7 +264,7 @@ def infer(valid_queue, model, criterion):
 
             if step % args.report_freq == 0:
                 logging.info('valid %03d %e %f %f', step, objs.avg, top1.avg, top5.avg)
-            
+
             if args.fast:
                 logging.info('//// WARNING: FAST MODE')
                 break

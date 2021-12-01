@@ -3,18 +3,17 @@ import genotypes
 import numpy as np
 from graphviz import Digraph
 
-
 supernet_dict = {
-    0:  ('c_{k-2}', '0'),
-    1:  ('c_{k-1}', '0'),
-    2:  ('c_{k-2}', '1'),
-    3:  ('c_{k-1}', '1'),
-    4:  ('0', '1'),
-    5:  ('c_{k-2}', '2'),
-    6:  ('c_{k-1}', '2'),
-    7:  ('0', '2'),
-    8:  ('1', '2'),
-    9:  ('c_{k-2}', '3'),
+    0: ('c_{k-2}', '0'),
+    1: ('c_{k-1}', '0'),
+    2: ('c_{k-2}', '1'),
+    3: ('c_{k-1}', '1'),
+    4: ('0', '1'),
+    5: ('c_{k-2}', '2'),
+    6: ('c_{k-1}', '2'),
+    7: ('0', '2'),
+    8: ('1', '2'),
+    9: ('c_{k-2}', '3'),
     10: ('c_{k-1}', '3'),
     11: ('0', '3'),
     12: ('1', '3'),
@@ -22,11 +21,13 @@ supernet_dict = {
 }
 steps = 4
 
+
 def plot_space(primitives, filename):
     g = Digraph(
         format='pdf',
         edge_attr=dict(fontsize='20', fontname="times"),
-        node_attr=dict(style='filled', shape='rect', align='center', fontsize='20', height='0.5', width='0.5', penwidth='2', fontname="times"),
+        node_attr=dict(style='filled', shape='rect', align='center', fontsize='20', height='0.5', width='0.5',
+                       penwidth='2', fontname="times"),
         engine='dot')
     g.body.extend(['rankdir=LR'])
     g.body.extend(['ratio=50.0'])
@@ -66,7 +67,8 @@ def plot(genotype, filename):
     g = Digraph(
         format='pdf',
         edge_attr=dict(fontsize='100', fontname="times"),
-        node_attr=dict(style='filled', shape='rect', align='center', fontsize='100', height='0.5', width='0.5', penwidth='2', fontname="times"),
+        node_attr=dict(style='filled', shape='rect', align='center', fontsize='100', height='0.5', width='0.5',
+                       penwidth='2', fontname="times"),
         engine='dot')
     g.body.extend(['rankdir=LR'])
     g.body.extend(['ratio=0.3'])
@@ -91,7 +93,6 @@ def plot(genotype, filename):
         g.edge(str(i), "c_{k}", fillcolor="gray")
 
     g.render(filename, view=False)
-
 
 
 # def plot(genotype, filename):
