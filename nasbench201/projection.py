@@ -17,15 +17,15 @@ np.set_printoptions(precision=4, suppress=True)
 def pt_project(train_queue, valid_queue, model, architect, criterion, optimizer,
                epoch, args, infer, query):
     def project(model, args):
-        ## macros
+        # macros
         num_edge, num_op = model.num_edge, model.num_op
 
-        ## select an edge
+        # select an edge
         remain_eids = torch.nonzero(model.candidate_flags).cpu().numpy().T[0]
         if args.edge_decision == "random":
             selected_eid = np.random.choice(remain_eids, size=1)[0]
 
-        ## select the best operation
+        # select the best operation
         if args.proj_crit == 'loss':
             crit_idx = 1
             compare = lambda x, y: x > y
@@ -36,13 +36,13 @@ def pt_project(train_queue, valid_queue, model, architect, criterion, optimizer,
         best_opid = 0
         crit_extrema = None
         for opid in range(num_op):
-            ## projection
+            # projection
             weights = model.get_projected_weights()
             proj_mask = torch.ones_like(weights[selected_eid])
             proj_mask[opid] = 0
             weights[selected_eid] = weights[selected_eid] * proj_mask
 
-            ## proj evaluation
+            # proj evaluation
             valid_stats = infer(valid_queue, model, criterion, log=False, eval=False, weights=weights)
             crit = valid_stats[crit_idx]
 
@@ -55,9 +55,9 @@ def pt_project(train_queue, valid_queue, model, architect, criterion, optimizer,
         logging.info('best opid %d', best_opid)
         return selected_eid, best_opid
 
-    ## query
-    if not args.fast:
-        api = API('../data/NAS-Bench-201-v1_0-e61699.pth')
+    # query
+    # if not args.fast:
+    #     api = API('../data/NAS-Bench-201-v1_0-e61699.pth')
 
     model.train()
     model.printing(logging)
@@ -92,25 +92,25 @@ def pt_project(train_queue, valid_queue, model, architect, criterion, optimizer,
             model.train()
             n = input.size(0)
 
-            ## fetch data
+            # fetch data
             input = input.cuda()
             target = target.cuda(non_blocking=True)
             input_search, target_search = next(iter(valid_queue))
             input_search = input_search.cuda()
             target_search = target_search.cuda(non_blocking=True)
 
-            ## train alpha
-            optimizer.zero_grad();
+            # train alpha
+            optimizer.zero_grad()
             architect.optimizer.zero_grad()
             shared = architect.step(input, target, input_search, target_search,
                                     return_logits=True)
 
-            ## train weight
-            optimizer.zero_grad();
+            # train weight
+            optimizer.zero_grad()
             architect.optimizer.zero_grad()
             logits, loss = model.step(input, target, args, shared=shared)
 
-            ## logging
+            # logging
             prec1, prec5 = ig_utils.accuracy(logits, target, topk=(1, 5))
             objs.update(loss.data, n)
             top1.update(prec1.data, n)
@@ -122,7 +122,7 @@ def pt_project(train_queue, valid_queue, model, architect, criterion, optimizer,
             if args.fast:
                 break
 
-        ## one epoch end
+        # one epoch end
         model.printing(logging)
 
         train_acc, train_obj = infer(train_queue, model, criterion, log=False)
@@ -132,9 +132,10 @@ def pt_project(train_queue, valid_queue, model, architect, criterion, optimizer,
         valid_acc, valid_obj = infer(valid_queue, model, criterion, log=False)
         logging.info('valid_acc  %f', valid_acc)
         logging.info('valid_loss %f', valid_obj)
+        print(model.genotype())
 
     # nasbench201
-    if not args.fast:
-        query(api, model.genotype(), logging)
+    # if not args.fast:
+    #     query(api, model.genotype(), logging)
 
     return

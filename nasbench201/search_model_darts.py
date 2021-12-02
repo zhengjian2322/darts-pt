@@ -1,5 +1,4 @@
 import torch
-import torch.nn as nn
 from .search_cells import NAS201SearchCell as SearchCell
 from .search_model import TinyNetwork as TinyNetwork
 

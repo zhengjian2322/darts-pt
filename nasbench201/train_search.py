@@ -28,7 +28,7 @@ torch.set_printoptions(precision=4, sci_mode=False)
 np.set_printoptions(precision=4, suppress=True)
 
 parser = argparse.ArgumentParser("sota")
-parser.add_argument('--data', type=str, default='../data',
+parser.add_argument('--data', type=str, default='/root/zj/dataset/',
                     help='location of the data corpus')
 parser.add_argument('--dataset', type=str, default='cifar10', choices=['cifar10', 'cifar100', 'imagenet16-120'],
                     help='choose dataset')
@@ -54,7 +54,7 @@ parser.add_argument('--grad_clip', type=float, default=5, help='gradient clippin
 parser.add_argument('--train_portion', type=float, default=0.5, help='portion of training data')
 parser.add_argument('--arch_learning_rate', type=float, default=3e-4, help='learning rate for arch encoding')
 parser.add_argument('--arch_weight_decay', type=float, default=1e-3, help='weight decay for arch encoding')
-#### common
+# common
 parser.add_argument('--fast', action='store_true', default=False, help='skip loading api which is slow')
 parser.add_argument('--resume_epoch', type=int, default=0, help='0: from scratch; -1: resume from latest checkpoints')
 parser.add_argument('--resume_expid', type=str, default='', help='e.g. search-darts-201-2')
@@ -62,24 +62,24 @@ parser.add_argument('--dev', type=str, default=None, help='separate supernet tra
 parser.add_argument('--ckpt_interval', type=int, default=20, help='frequency for ckpting')
 parser.add_argument('--expid_tag', type=str, default='none', help='extra tag for exp identification')
 parser.add_argument('--log_tag', type=str, default='', help='extra tag for log during arch projection')
-#### projection
+# projection
 parser.add_argument('--edge_decision', type=str, default='random', choices=['random'],
                     help='which edge to be projected next')
 parser.add_argument('--proj_crit', type=str, default='acc', choices=['loss', 'acc'], help='criteria for projection')
 parser.add_argument('--proj_intv', type=int, default=5, help='fine tune epochs between two projections')
 args = parser.parse_args()
 
-#### macros
+# macros
 
 
-#### args augment
+# args augment
 expid = args.save
 args.save = '../experiments/nasbench201/search-{}-{}'.format(args.save, args.seed)
 if not args.dataset == 'cifar10':
     args.save += '-' + args.dataset
 if args.expid_tag != 'none': args.save += '-' + args.expid_tag
 
-#### logging
+# logging
 if args.resume_epoch > 0:  # do not delete dir if resume:
     args.save = '../experiments/nasbench201/{}'.format(args.resume_expid)
     if not os.path.exists(args.save):
@@ -121,7 +121,7 @@ fh.setFormatter(logging.Formatter(log_format))
 logging.getLogger().addHandler(fh)
 writer = SummaryWriter(args.save + '/runs')
 
-#### macros
+# macros
 if args.dataset == 'cifar100':
     n_classes = 100
 elif args.dataset == 'imagenet16-120':
@@ -146,10 +146,10 @@ def main():
     logging.info("args = %s", args)
     logging.info('gpu device = %d' % gpu)
 
-    if not args.fast:
-        api = API('../data/NAS-Bench-201-v1_0-e61699.pth')
+    # if not args.fast:
+    #     api = API('/root/zj/dataset/NAS-Bench-201-v1_0-e61699.pth')
 
-    #### model
+    # model
     criterion = nn.CrossEntropyLoss()
     search_space = SearchSpaceNames[args.search_space]
     if args.method in ['darts', 'blank']:
@@ -163,7 +163,7 @@ def main():
 
     architect = Architect(model, args)
 
-    #### data
+    # data
     if args.dataset == 'cifar10':
         train_transform, valid_transform = ig_utils._data_transforms_cifar10(args)
         train_data = dset.CIFAR10(root=args.data, train=True, download=True, transform=train_transform)
@@ -199,11 +199,11 @@ def main():
         sampler=torch.utils.data.sampler.SubsetRandomSampler(indices[split:num_train]),
         pin_memory=True)
 
-    #### scheduler
+    # scheduler
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
         model.optimizer, float(args.epochs), eta_min=args.learning_rate_min)
 
-    #### resume
+    # resume
     start_epoch = 0
     if args.resume_epoch != 0:
         logging.info('loading checkpoint from {}'.format(expid))
@@ -226,7 +226,7 @@ def main():
         else:
             print("=> no checkpoint found at '{}'".format(filename))
 
-    #### training
+    # training
     for epoch in range(start_epoch, args.epochs):
         lr = scheduler.get_lr()[0]
         ## data aug
@@ -255,22 +255,23 @@ def main():
         ## logging
         if not args.fast:
             # nasbench201
-            cifar10_train, cifar10_test, cifar100_train, cifar100_valid, \
-            cifar100_test, imagenet16_train, imagenet16_valid, imagenet16_test = query(api, model.genotype(), logging)
+            logging.info("genotype：", model.genotype())
+            # cifar10_train, cifar10_test, cifar100_train, cifar100_valid, \
+            # cifar100_test, imagenet16_train, imagenet16_valid, imagenet16_test = query(api, model.genotype(), logging)
+            #
+            # # tensorboard
+            # writer.add_scalars('accuracy', {'train': train_acc, 'valid': valid_acc}, epoch)
+            # writer.add_scalars('loss', {'train': train_obj, 'valid': valid_obj}, epoch)
+            # writer.add_scalars('nasbench201/cifar10', {'train': cifar10_train, 'test': cifar10_test}, epoch)
+            # writer.add_scalars('nasbench201/cifar100',
+            #                    {'train': cifar100_train, 'valid': cifar100_valid, 'test': cifar100_test}, epoch)
+            # writer.add_scalars('nasbench201/imagenet16',
+            #                    {'train': imagenet16_train, 'valid': imagenet16_valid, 'test': imagenet16_test}, epoch)
 
-            # tensorboard
-            writer.add_scalars('accuracy', {'train': train_acc, 'valid': valid_acc}, epoch)
-            writer.add_scalars('loss', {'train': train_obj, 'valid': valid_obj}, epoch)
-            writer.add_scalars('nasbench201/cifar10', {'train': cifar10_train, 'test': cifar10_test}, epoch)
-            writer.add_scalars('nasbench201/cifar100',
-                               {'train': cifar100_train, 'valid': cifar100_valid, 'test': cifar100_test}, epoch)
-            writer.add_scalars('nasbench201/imagenet16',
-                               {'train': imagenet16_train, 'valid': imagenet16_valid, 'test': imagenet16_test}, epoch)
-
-        #### scheduling
+        # scheduling
         scheduler.step()
 
-        #### saving
+        # saving
         save_state = {
             'epoch': epoch + 1,
             'state_dict': model.state_dict(),
@@ -283,7 +284,7 @@ def main():
         if save_state['epoch'] % args.ckpt_interval == 0:
             ig_utils.save_checkpoint(save_state, False, args.save, per_epoch=True)
 
-    #### architecture selection / projection
+    # architecture selection / projection
     if args.dev == 'proj':
         pt_project(train_queue, valid_queue, model, architect, criterion, model.optimizer,
                    start_epoch, args, infer, query)
@@ -321,9 +322,9 @@ def train(train_queue, valid_queue, model, architect, optimizer, lr, epoch):
         ## logging
         prec1, prec5 = ig_utils.accuracy(logits, target, topk=(1, 5))
         n = input.size(0)
-        objs.update(loss.data, n)
-        top1.update(prec1.data, n)
-        top5.update(prec5.data, n)
+        objs.update(loss.item(), n)
+        top1.update(prec1.item(), n)
+        top5.update(prec5.item(), n)
 
         if step % args.report_freq == 0:
             logging.info('train %03d %e %f %f', step, objs.avg, top1.avg, top5.avg)
@@ -363,9 +364,9 @@ def infer(valid_queue, model, criterion,
 
             prec1, prec5 = ig_utils.accuracy(logits, target, topk=(1, 5))
             n = input.size(0)
-            objs.update(loss.data, n)
-            top1.update(prec1.data, n)
-            top5.update(prec5.data, n)
+            objs.update(loss.item(), n)
+            top1.update(prec1.item(), n)
+            top5.update(prec5.item(), n)
 
             if log and step % args.report_freq == 0:
                 logging.info('valid %03d %e %f %f', step, objs.avg, top1.avg, top5.avg)
@@ -376,7 +377,7 @@ def infer(valid_queue, model, criterion,
     return top1.avg, objs.avg
 
 
-#### util functions
+# util functions
 def distill(result):
     result = result.split('\n')
     cifar10 = result[5].replace(' ', '').split(':')
